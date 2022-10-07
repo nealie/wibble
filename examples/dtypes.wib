@@ -1,0 +1,45 @@
+# Inline comment.
+{ Block comment }
+
+# Symbol
+one two argle bargle
+
+# Boolean, parsed as words, but evaluated later as Boolean. Hopefully.
+
+true false
+
+# Numbers
+
+# Integer
+123 +4 -5
+0xab 0XCDE
+
+# Float
+45.6 +7.8 -8.9
+3e10 1.2e12 +2.3e-7 -3.4e+6
+
+# String
+"String"
+"Another
+String"
+"\tTab\nNewline\\Slash"
+"Return\rNewline\nForm Feed\fTab\tVertical tab\vSlash\\Quote\"Tick\'Alert\aBackspace \bEscape\e "
+"A\x41*\42"
+
+# List
+[]
+[a b c 1 2 3 "abc"]
+[a, b, c, 1, 2, 3, "abc"]
+[
+    1
+    2
+    3
+]
+[
+    a,
+    b,
+    c,
+]
+
+# Object
+[name "Fred" "age" 55] Object fromList

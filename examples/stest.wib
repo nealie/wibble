@@ -1,0 +1,5 @@
+[ stest [][result Object] 
+  'jobbie create
+  doofer 'result set
+  2 'doofer set
+] local proc
