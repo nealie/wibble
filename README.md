@@ -8,7 +8,7 @@ It's very much in its early days and is currently not of much use for anything.
 There are some concepts that I like, but no language uses them all, until now:
 
 - Homoiconic - like lisp
-- Stack bacsed - like forth
+- Stack based - like forth
 - Object oriented, using prototypes - like self
 
 ## Data Format
@@ -76,6 +76,10 @@ Values are stored within an Object's slots.
 An Object has a `_parent` slot. This is used for slot lookup when looking up a slot that
 does not exist within the Object.
 
+An Object (or more likely it's parent) also has a `_call` slot, which is called whenever an
+Object is referenced. Object itself defines this as pushing itself onto the stack and this
+behaviour is inherited by most other more specialised objects. Proc's however refer to themselves.
+
 There are two special Objects:
 
 - `global` - This contains all of the base Objects.
@@ -111,4 +115,4 @@ slot will be looked up the the following order:
 2. Within the scope Object.
 3. In global.
 
-If the result is callable, it is called, otherwise it is placed on the stack.
+When an Object is found, it will be called.
