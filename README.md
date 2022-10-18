@@ -5,7 +5,7 @@ It's very much in its early days and is currently not of much use for anything.
 
 ## Concept
 
-There are some concepts that I like, but no language uses them all until now:
+There are some concepts that I like, but no language uses them all, until now:
 
 - Homoiconic - like lisp
 - Stack bacsed - like forth
@@ -55,12 +55,13 @@ There are a few special escape characters, denoted by the backspace: `\`:
 
 ### Numbers
 
-If a value starts with a value of 0..9 or a decimal point `.`, optionally preceded by a + or -,
+If a value starts with a value of `0`..`9` or a decimal point `.`, 
+optionally preceded by a `+` or `-`,
 then it's parsed as a Number.
 
 Hex values can be used starting with `0x`, which are always Integer.
 
-If the value contains a ., e or E, then the Number is a Float, otherwise it's parsed as
+If the value contains a `.`, `e` or `E`, then the Number is a Float, otherwise it's parsed as
 an Integer.
 
 ### Symbols
@@ -77,11 +78,9 @@ does not exist within the Object.
 
 There are two special Objects:
 
-- `global`
-  This contains all of the base Objects.
+- `global` - This contains all of the base Objects.
 
-- `local`
-  This forms the basis of scope.
+- `local` - This forms the basis of scope.
 
 ## Scope
 
