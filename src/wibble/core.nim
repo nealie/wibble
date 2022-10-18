@@ -700,6 +700,13 @@ proc integerDivide*(stack: var List, scope: var Object, self: Object, proc_def: 
 
 base_objects.base_integer.slots["/"] = newNativeProc(integerDivide) 
 
+proc integerNegate*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- Integer }
+  ## Negate the value of an Integer.
+  stack.append(newInteger(-Integer(self).value))
+
+base_objects.base_integer.slots["neg"] = newNativeProc(integerNegate) 
+
 proc integerPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer-self -- }
   ## Print the value of an Integer.
@@ -889,6 +896,13 @@ proc floatDivide*(stack: var List, scope: var Object, self: Object, proc_def: Pr
     raise newError[FloatError](fmt"/ - {error.msg}")
 
 base_objects.base_float.slots["/"] = newNativeProc(floatDivide)
+
+proc floatNegate*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Float-self -- Float }
+  ## Negate the value of an Integer.
+  stack.append(newFloat(-Float(self).value))
+
+base_objects.base_float.slots["neg"] = newNativeProc(floatNegate) 
 
 proc floatPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Float-self -- }

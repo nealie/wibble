@@ -65,6 +65,7 @@
     - - { Integer/Float Integer-self -- Integer/Float } - Subtract from Integer.
     - * { Integer/Float Integer-self -- Integer/Float } - Multiply Integer.
     - / { Integer/Float Integer-self -- Integer/Float } - Divide Integer.
+    - neg { Integer-self -- Integer } - Negate value.
     - print { Integer-self -- } - Print value.
     - toString { Integer-self -- String } - Convert to String.
     - toFloat { Integer-self -- Float } - Convert to Float.
@@ -84,6 +85,7 @@
     - - { Float/Integer Float-self -- Float } - Subtract from Float.
     - * { Float/Integer Float-self -- Float } - Multiply Float.
     - / { Float/Integer Float-self -- Float } - Divide Float.
+    - neg { Float-self -- Float } - Negate value.
     - print { Float-self -- } - Print value.
     - toString { Float-self -- String } - Convert to String.
     - toInteger { Float-self -- Integer } - Convert to Integer.
