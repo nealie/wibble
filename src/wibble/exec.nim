@@ -3,7 +3,7 @@
 import std/[strutils, strformat, streams, tables, os]
 import core, parser, thread
 
-const debug = false
+const debug = true
 
 type
   ExecError* = ref object of CoreError
@@ -50,13 +50,9 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
           if obj.isNil:
             raise newError[ExecError]("{item_symbol.value} not found.".fmt)
           else:
-            # Is it callable?
-            if obj.callable:
-              when debug: echo "* Callable on stack"
-              Proc(obj).call(stack, scope, stack, Proc(obj))
-            else:
-              when debug: echo "* Add to stack"
-              stack.append(obj)
+            when debug: echo "* Call Object"
+            let callable = Proc(obj.slots[objectSlotCall])
+            Proc(obj).call(stack, scope, stack, Proc(obj))
         except CoreError as error:
           echo(error.msg)
           break
@@ -73,26 +69,18 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
               when debug: echo("* No slot in TOS")
             else:
               discard stack.pop
-              if obj.callable:
-                when debug: echo "* Callable on TOS"
-                #when debug: echo "** " & $stack
-                Proc(obj).call(stack, scope, tos, Proc(obj))
-                #when debug: echo "&& " & $stack
-              else:
-                when debug: echo "* Add to stack 1"
-                stack.append(obj)
+              when debug: echo "* Call Object"
+              let callable = Proc(obj.get_slot(objectSlotCall))
+              callable.call(stack, scope, tos, callable)
               done = true              
           if not done:
             # Look for a slot in the scope chain.
             let obj = scope.get_slot(item_symbol.value)
             if not obj.isNil:
-              # Is it callable?
-              if obj.callable:
-                when debug: echo "* Callable on local"
-                Proc(obj).call(stack, scope, scope, Proc(obj))
-              else:
-                when debug: echo "* Add to stack 2"
-                stack.append(obj)
+              when debug: echo "* Call Object"
+              echo obj.slots
+              let callable = Proc(obj.get_slot(objectSlotCall))
+              callable.call(stack, scope, obj, callable)
               done = true
           if not done:
             # Look for a slot in global.
@@ -100,13 +88,9 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
             if obj.isNil:
               raise newError[ExecError]("{item_symbol.value} not found.".fmt)
             else:
-              # Is it callable?
-              if obj.callable:
-                when debug: echo "* Callable on Object"
-                Proc(obj).call(stack, scope, base_objects.global_object, Proc(obj))
-              else:
-                when debug: echo "* Add to stack 2"
-                stack.append(obj)
+              when debug: echo "* Call Object"
+              let callable = Proc(obj.get_slot(objectSlotCall))
+              callable.call(stack, scope, obj, callable)
               done = true
         except CoreError as error:
           echo(error.msg)
@@ -393,7 +377,7 @@ proc newBaseProc(): Proc =
   result.class_name = procName
   result.call = nil
   result.slots[objectSlotParent] = base_objects.base_object
-  #result.slots[objectSlotCall] = base_objects.base_true
+  result.slots[objectSlotCall] = result
   result.slots[procSlotArgs] = base_objects.base_nil
   result.slots[procSlotReturn] = base_objects.base_nil
   result.slots[procSlotCode] = base_objects.base_nil
@@ -408,7 +392,7 @@ proc newProc*(scope: Object, arguments: List, returns: List, the_proc: List): Pr
   result.class_name = procName
   result.call = procExec
   result.slots[objectSlotParent] = base_objects.base_proc
-  result.slots[objectSlotCall] = base_objects.base_true
+  result.slots[objectSlotCall] = result
   result.slots[procSlotArgs] = arguments
   result.slots[procSlotReturn] = returns
   result.slots[procSlotCode] = the_proc

@@ -21,6 +21,8 @@
     - def
 
 - Object(Object)
+    - _parent - Parent Object.
+    - _call - Callable. Defaults to push onto stack.
     - new { Object-self -- Object } - Create new Object.
     - repr { Object-self -- String } - Display object representation.
     - slots { Object-self -- List } - Return List of slots.

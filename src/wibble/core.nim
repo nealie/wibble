@@ -21,7 +21,7 @@ const
 
   # Slot names.
   objectSlotParent* = "_parent"
-  objectSlotCall* = "_callable"
+  objectSlotCall* = "_call"
   procSlotArgs* = "arguments"
   procSlotReturn* = "returns"
   procSlotScope* = "scope"
@@ -44,7 +44,7 @@ type
     ## Singleton Nil Object.
 
   ProcSig* = proc(stack: var List, scope: var Object, self: Object, proc_def: Proc)
-    ## Callable signature.
+    ## Call signature.
 
   Proc* = ref object of Object
     ## Procedure.
@@ -232,7 +232,7 @@ proc newNativeProc*(the_proc: ProcSig): NativeProc =
   result = new NativeProc
   result.class_name = nativeProcName
   result.call = the_proc
-  result.slots[objectSlotCall] = base_objects.base_true
+  result.slots[objectSlotCall] = result
 
 proc newObject*(parent: Object): Object =
   ## Create a new Object, inheriting from a parent Object.
@@ -262,9 +262,12 @@ proc newObject*(): Object =
   ## Create a new Object, inheriting from the base_object.
   result = newObject(base_objects.base_object)
 
-proc callable*(self: Object): bool =
-  ## Determine whether an Object is callable.
-  result = objectSlotCall in self.slots
+proc objectCall*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Object-self -- Object }
+  ## Call an Object. Just places the object onto the stack.
+  stack.append(self)
+
+base_objects.base_object.slots[objectSlotCall] = newNativeProc(objectCall)
 
 proc objectNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Object-self -- Object }
