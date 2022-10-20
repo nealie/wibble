@@ -1,7 +1,7 @@
 - global(Object)
     - global(self)
     - Object
-    - Nil
+    - Nil(Object) - Represents uninitialised values.
     - modules(Object)
     - repr
     - slots
@@ -20,9 +20,8 @@
     - Stack
     - def
 
-- Object(Object)
+- Object
     - _parent - Parent Object.
-    - _call - Callable. Defaults to push onto stack.
     - new { Object-self -- Object } - Create new Object.
     - repr { Object-self -- String } - Display object representation.
     - slots { Object-self -- List } - Return List of slots.
@@ -31,10 +30,18 @@
     - get { Symbol Object-self -- Object } - Get slot value.
     - def { List Symbol Object-self - } - Define a procedure and store it in an Object.
 
-- Nil(Object)
+- Nil - Object
     - new { Object-self -- Object-self } - Nil is a singleton.
 
-- Block(Object) - Block slot lookup (not currently needed).
+- Proc(Object) - Created using List.proc of Object.def
+    - _call - Callable.
+    - arguments - List of Lists of argument name and type pairs.
+    - returns - List of Lists of return value name and type pairs.
+    - scope - Scope Object.
+    - name - Proc name String.
+    - code - List of code.
+
+- NativeProc(Proc) - System builtins.
 
 - Symbol(Symbol/Object)
     - toString { Symbol-self -- String } - Convert to String.
@@ -67,7 +74,15 @@
     - - { Integer/Float Integer-self -- Integer/Float } - Subtract from Integer.
     - * { Integer/Float Integer-self -- Integer/Float } - Multiply Integer.
     - / { Integer/Float Integer-self -- Integer/Float } - Divide Integer.
+    - % { Integer/Float Integer-self -- Integer/Float } - Integer Modulus.
     - neg { Integer-self -- Integer } - Negate value.
+    - not { Integer-self -- Integer } - Bitwise complement.
+    - and { Integer Integer-self -- Integer } - Bitwise and.
+    - or { Integer Integer-self -- Integer } - Bitwise or.
+    - xor { Integer Integer-self -- Integer } - Bitwise xor.
+    - shl { Integer Integer-self -- Integer } - Bitwise shift left.
+    - shr { Integer Integer-self -- Integer } - Bitwise shift right.
+    - ashr { Integer Integer-self -- Integer } - Bitwise arithmetic shift right.
     - print { Integer-self -- } - Print value.
     - toString { Integer-self -- String } - Convert to String.
     - toFloat { Integer-self -- Float } - Convert to Float.

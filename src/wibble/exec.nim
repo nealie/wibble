@@ -1,7 +1,7 @@
 ## Wibble executor.
 
-import std/[strutils, strformat, streams, tables, os]
-import core, parser, thread
+import std/[strutils, strformat, streams, tables, os, dynlib]
+import core, parser #, thread
 
 const debug = true
 
@@ -50,9 +50,13 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
           if obj.isNil:
             raise newError[ExecError]("{item_symbol.value} not found.".fmt)
           else:
-            when debug: echo "* Call Object"
-            let callable = Proc(obj.slots[objectSlotCall])
-            Proc(obj).call(stack, scope, stack, Proc(obj))
+            # Is it callable?
+            if obj.callable:
+              when debug: echo "* Callable on stack"
+              Proc(obj).call(stack, scope, stack, Proc(obj))
+            else:
+              when debug: echo "* Add from stack to stack"
+              stack.append(obj)
         except CoreError as error:
           echo(error.msg)
           break
@@ -69,18 +73,26 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
               when debug: echo("* No slot in TOS")
             else:
               discard stack.pop
-              when debug: echo "* Call Object"
-              let callable = Proc(obj.get_slot(objectSlotCall))
-              callable.call(stack, scope, tos, callable)
+              if obj.callable:
+                when debug: echo "* Callable on TOS"
+                #when debug: echo "** " & $stack
+                Proc(obj).call(stack, scope, tos, Proc(obj))
+                #when debug: echo "&& " & $stack
+              else:
+                when debug: echo "* Add from TOS to stack"
+                stack.append(obj)
               done = true              
           if not done:
             # Look for a slot in the scope chain.
             let obj = scope.get_slot(item_symbol.value)
             if not obj.isNil:
-              when debug: echo "* Call Object"
-              echo obj.slots
-              let callable = Proc(obj.get_slot(objectSlotCall))
-              callable.call(stack, scope, obj, callable)
+              # Is it callable?
+              if obj.callable:
+                when debug: echo "* Callable on local"
+                Proc(obj).call(stack, scope, scope, Proc(obj))
+              else:
+                when debug: echo "* Add from local to stack"
+                stack.append(obj)
               done = true
           if not done:
             # Look for a slot in global.
@@ -88,9 +100,13 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
             if obj.isNil:
               raise newError[ExecError]("{item_symbol.value} not found.".fmt)
             else:
-              when debug: echo "* Call Object"
-              let callable = Proc(obj.get_slot(objectSlotCall))
-              callable.call(stack, scope, obj, callable)
+              # Is it callable?
+              if obj.callable:
+                when debug: echo "* Callable on Object"
+                Proc(obj).call(stack, scope, base_objects.global_object, Proc(obj))
+              else:
+                when debug: echo "* Add from global to stack"
+                stack.append(obj)
               done = true
         except CoreError as error:
           echo(error.msg)
@@ -210,7 +226,14 @@ base_objects.base_integer.slots["for"] = newNativeProc(integerFor)
 
 # String
 
-const fileExt = "wib"
+const
+  fileExt = "wib"
+  libExt = "so"
+  libPrefix = "lib"
+  initName* = "init"
+
+type
+  InitProc* = proc(base_objs: var BaseObjects, stack: var List, scope: var Object) {.gcsafe, stdcall.}
 
 proc stringExecFile*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { String-self -- }
@@ -239,19 +262,52 @@ proc importModule*(scope: var Object, module_name: string) =
       # Don't re-import if we already have it.
       scope.slots[name] = modulesObj.slots[name]
     else:
-      let
-        full_path = path.addFileExt(fileExt)
-        stream = openFileStream(full_path)
-        parsed_input = parse_data(stream)
+      let full_path = path.addFileExt(fileExt)
 
-      var
-        exec_scope = newScope(scope)
-        exec_stack = newStack()
+      if full_path.fileExists():
+        # Import wibble module.
+        let
+          stream = openFileStream(full_path)
+          parsed_input = parse_data(stream)
 
-      exec(exec_stack, exec_scope, parsed_input)
+        var
+          exec_scope = newScope(scope)
+          exec_stack = newStack()
 
-      modulesObj.slots[name] = exec_scope
-      scope.slots[name] = exec_scope
+        exec(exec_stack, exec_scope, parsed_input)
+
+        modulesObj.slots[name] = exec_scope
+        scope.slots[name] = exec_scope
+      else:
+        let
+          #(dir, oldname, ext) = path.splitFile()
+          (dir, _) = path.splitPath()
+          lib_path = (dir / libPrefix & name).addFileExt(libExt)
+        if not lib_path.fileExists():
+          raise newError[ExecError](fmt"import - Module {path} does not exist.")
+
+        # Import library module.
+        let lib = loadLib(lib_path)
+        if lib.isNil:
+          raise newError[ExecError](fmt"import - Unable to import module {path}.")
+
+        var
+          exec_scope = newScope(scope)
+          exec_stack = newStack()
+
+        let init = cast[InitProc](lib.symAddr(initName))
+
+        if init.isNil:
+          raise newError[ExecError](fmt"import - Can't find {initName} in {lib_path}")
+
+        # Call library.
+        echo "> base_objects: ref {cast[int](base_objects):#x}".fmt
+        echo "> stack: ref {cast[int](exec_stack):#x}".fmt
+        echo "> scope: ref {cast[int](exec_scope):#x}".fmt
+        init(base_objects, exec_stack, exec_scope)
+
+        modulesObj.slots[name] = exec_scope
+        scope.slots[name] = exec_scope
   except IOError as error:
     raise newError[ExecError](fmt"import - {error.msg}")
   except OSError as error:
@@ -486,7 +542,7 @@ proc procNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) 
     return_spec.add(return_def)
     index += 2
 
-  stack.append(newProc( scope, newList(param_spec), newList(return_spec), code))
+  stack.append(newProc(scope, newList(param_spec), newList(return_spec), code))
 
 base_objects.base_list.slots["proc"] = newNativeProc(procNew)
 

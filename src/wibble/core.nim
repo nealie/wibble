@@ -2,7 +2,7 @@
 
 {.experimental: "codeReordering".}
 
-import std/[strutils, strformat, streams, tables, sugar, os]
+import std/[math, strutils, strformat, streams, tables, sugar, os]
 
 const
   # Base Object names.
@@ -40,8 +40,8 @@ type
     class_name*: string             ## Natively implemented Objects have special names.
     slots*: Table[string, Object]   ## All Object values go into a slot.
 
-  Nil* = ref object of Object
-    ## Singleton Nil Object.
+  # Nil* = ref object of Object
+  #   ## Singleton Nil Object.
 
   ProcSig* = proc(stack: var List, scope: var Object, self: Object, proc_def: Proc)
     ## Call signature.
@@ -200,7 +200,7 @@ proc checkArgs*(stack: var List, scope: var Object, parameters: openarray[seq[Ob
 
 # Collection of all base objects.
 type
-  BaseObjects* = object
+  BaseObjects* = ref object
     global_object*: Object  # Pseudo Object, but not inheriting from Object.
     base_object*: Object
     base_nil*: Object
@@ -218,7 +218,7 @@ type
     base_proc*: Proc
 
 var 
-  base_objects*: BaseObjects    ## Base of the Object hierarchy.
+  base_objects* = new BaseObjects    ## Base of the Object hierarchy.
 
 proc toBoolean*(value: bool): Boolean =
   ## Convert a bool to Boolean.
@@ -262,12 +262,9 @@ proc newObject*(): Object =
   ## Create a new Object, inheriting from the base_object.
   result = newObject(base_objects.base_object)
 
-proc objectCall*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Object-self -- Object }
-  ## Call an Object. Just places the object onto the stack.
-  stack.append(self)
-
-base_objects.base_object.slots[objectSlotCall] = newNativeProc(objectCall)
+proc callable*(self: Object): bool =
+  ## Determine whether an Object is callable.
+  result = objectSlotCall in self.slots
 
 proc objectNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Object-self -- Object }
@@ -703,12 +700,105 @@ proc integerDivide*(stack: var List, scope: var Object, self: Object, proc_def: 
 
 base_objects.base_integer.slots["/"] = newNativeProc(integerDivide) 
 
+proc integerModulo*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer/Float Integer-self -- Integer/Float }
+  ## Integer Modulus either an Integer or a Float.
+  try:
+    let index = checkArgs(stack, scope, [@[Object(base_objects.base_integer)], @[Object(base_objects.base_float)]])
+    if index == 0:
+      stack.append(newInteger(int(Integer(stack.pop()).value mod Integer(self).value)))
+    else:
+      stack.append(newFloat(Float(stack.pop()).value mod float(Integer(self).value)))
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+base_objects.base_integer.slots["%"] = newNativeProc(integerModulo) 
+
 proc integerNegate*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer-self -- Integer }
   ## Negate the value of an Integer.
   stack.append(newInteger(-Integer(self).value))
 
 base_objects.base_integer.slots["neg"] = newNativeProc(integerNegate) 
+
+proc integerNot*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- Integer }
+  ## Bitwise complement of an Integer.
+  stack.append(newInteger(Integer(self).value.not))
+
+base_objects.base_integer.slots["not"] = newNativeProc(integerNot) 
+
+proc integerAnd*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise and of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(Integer(stack.pop()).value and Integer(self).value)))
+
+base_objects.base_integer.slots["and"] = newNativeProc(integerAnd) 
+
+proc integerOr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise or of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(Integer(stack.pop()).value or Integer(self).value)))
+
+base_objects.base_integer.slots["or"] = newNativeProc(integerOr) 
+
+proc integerXor*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise xor of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(Integer(stack.pop()).value xor Integer(self).value)))
+
+base_objects.base_integer.slots["xor"] = newNativeProc(integerXor) 
+
+proc integerShiftLeft*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise shift left of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(Integer(stack.pop()).value shl Integer(self).value)))
+
+base_objects.base_integer.slots["shl"] = newNativeProc(integerShiftLeft) 
+
+proc integerShiftRight*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise shift right of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(Integer(stack.pop()).value shr Integer(self).value)))
+
+base_objects.base_integer.slots["shr"] = newNativeProc(integerShiftRight)
+
+proc integerArithShiftRight*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer Integer-self -- Integer }
+  ## Bitwise arithmatic shift right of an Integer.
+  try:
+    discard checkArgs(stack, scope, [@[Object(base_objects.base_integer)]])
+  except ParameterError as error:
+    raise newError[IntegerError](fmt"/ - {error.msg}")
+
+  stack.append(newInteger(int(ashr(Integer(stack.pop()).value, Integer(self).value))))
+
+base_objects.base_integer.slots["ashr"] = newNativeProc(integerArithShiftRight)
 
 proc integerPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer-self -- }
