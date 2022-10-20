@@ -76,9 +76,7 @@ Values are stored within an Object's slots.
 An Object has a `_parent` slot. This is used for slot lookup when looking up a slot that
 does not exist within the Object.
 
-An Object (or more likely it's parent) also has a `_call` slot, which is called whenever an
-Object is referenced. Object itself defines this as pushing itself onto the stack and this
-behaviour is inherited by most other more specialised objects. Proc's however refer to themselves.
+An Object may also has a `_call` slot, which determines whether the Object is callable.
 
 There are two special Objects:
 
@@ -115,4 +113,5 @@ slot will be looked up the the following order:
 2. Within the scope Object.
 3. In global.
 
-When an Object is found, it will be called.
+When an Object is found, if it is callable it will be called, otherwise it's
+appended to the stack.
