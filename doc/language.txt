@@ -23,7 +23,8 @@
 - Object
     - _parent - Parent Object.
     - new { Object-self -- Object } - Create new Object.
-    - repr { Object-self -- String } - Display object representation.
+    - $ { Object-self -- String } - Display Object representation.
+    - repr { Object-self -- String } - Display Object representation.
     - slots { Object-self -- List } - Return List of slots.
     - create { Symbol Object-self -- } - Create new slot.
     - set { Object Symbol Object-self -- } - Set value of slot.
@@ -44,7 +45,8 @@
 - NativeProc(Proc) - System builtins.
 
 - Symbol(Symbol/Object)
-    - toString { Symbol-self -- String } - Convert to String.
+    - $ { Symbol-self -- String } - Convert to String.
+    - repr { Symbol-self -- String } - Display Symbol representation.
     - print { Symbol-self -- } - Print value.
     - create { Symbol-self -- } - Operate on local instead of Symbol.
     - get { Symbol-self -- Object } - Operate on local instead of Symbol.
@@ -56,6 +58,8 @@
 
 - String(String/Object)
     - new { -- String } - Create new empty String.
+    - $ { String-self -- String } - Just return a new copy of ourself.
+    - repr { String-self -- String } - Display String representation.
     - & { String String-self -- String } - Append two Strings.
     - print { String-self -- } - Print value.
     - toSymbol { String-self -- Symbol } - Convert to Symbol.
@@ -70,6 +74,10 @@
     - new { Number-self - } - Always raises a NumberError.
 
 - Integer(Integer/Number)
+    - $ { Integer-self -- String } - Convert to String.
+    - repr { Integer-self -- String } - Display Integer representation.
+    - print { Integer-self -- } - Print value.
+    - toFloat { Integer-self -- Float } - Convert to Float.
     - + { Integer/Float Integer-self -- Integer/Float } - Add to Integer.
     - - { Integer/Float Integer-self -- Integer/Float } - Subtract from Integer.
     - * { Integer/Float Integer-self -- Integer/Float } - Multiply Integer.
@@ -83,9 +91,6 @@
     - shl { Integer Integer-self -- Integer } - Bitwise shift left.
     - shr { Integer Integer-self -- Integer } - Bitwise shift right.
     - ashr { Integer Integer-self -- Integer } - Bitwise arithmetic shift right.
-    - print { Integer-self -- } - Print value.
-    - toString { Integer-self -- String } - Convert to String.
-    - toFloat { Integer-self -- Float } - Convert to Float.
     - = { Integer/Float Integer-self -- Boolean } - Check for equality.
     - < { Integer/Float Integer-self -- Boolean } - Check less than.
     - <= { Integer/Float Integer-self -- Boolean } - Check less than or equal.
@@ -98,13 +103,14 @@
             than the second, the values decrement.
 
 - Float(Float/Number)
+    - $ { Float-self -- String } - Convert to String.
+    - repr { Float-self -- String } - Display Float representation.
+    - print { Float-self -- } - Print value.
     - + { Float/Integer Float-self -- Float } - Add to Float.
     - - { Float/Integer Float-self -- Float } - Subtract from Float.
     - * { Float/Integer Float-self -- Float } - Multiply Float.
     - / { Float/Integer Float-self -- Float } - Divide Float.
     - neg { Float-self -- Float } - Negate value.
-    - print { Float-self -- } - Print value.
-    - toString { Float-self -- String } - Convert to String.
     - toInteger { Float-self -- Integer } - Convert to Integer.
     - = { Float/Integer Float-self -- Boolean } - Check for equality.
     - < { Float/Integer Float-self -- Boolean } - Check less than.
@@ -114,6 +120,8 @@
     - != { Float/Integer Float-self -- Boolean } - Check for inequality.
 
 - Boolean(Boolean/Object)
+    - $ { Boolean-self -- String } - Convert to String.
+    - repr { Boolean-self -- String } - Display Boolean representation.
     - print { Boolean-self -- } - Print value.
     - and { Boolean Boolean-self -- Boolean }
     - or { Boolean Boolean-self -- Boolean }
@@ -124,6 +132,8 @@
 
 - List(List/Object)
     - new { List-self -- List } - Create new List.
+    - $ { List-self -- String } - Convert to String.
+    - repr { List-self -- String } - Display List representation.
     - len { List-self -- Integer } - Return number of Objects in List.
     - append { Object List-self - } - Append object to end of List.
     - pop { List-self -- Object } - Pop the last item from the List.

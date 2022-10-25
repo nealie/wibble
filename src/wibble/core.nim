@@ -114,6 +114,27 @@ type
 
   ListError* = ref object of CoreError
 
+  BaseObjects* = ref object
+    ## Collection of all base objects.
+    global_object*: Object  # Pseudo Object, but not inheriting from Object.
+    base_object*: Object
+    base_nil*: Object
+    # base_block*: Object
+    base_symbol*: Symbol
+    base_number*: Number
+    base_integer*: Integer
+    base_float*: Float
+    base_string*: String
+    base_boolean*: Boolean
+    base_true*: Boolean
+    base_false*: Boolean
+    base_list*: List
+    base_stack*: List
+    base_proc*: Proc
+
+var 
+  base_objects* = new BaseObjects    ## Base of the Object hierarchy.
+
 # Necessary forward declarations.
 # proc pop*(self: var List): Object
 
@@ -140,11 +161,11 @@ proc newError*[T](msg: string): T =
 method `$`*(self: Object): string {.base.} =
   result = "<{$self.class_name}: ref {cast[int](self):#x}>".fmt
 
-method repr*(self: Object): string {.base.} =
-  result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.type} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: Object): string {.base.} =
+#   result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.type} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc repr_tree*(self: Object, name: string, indent: string = ""): string =
   ## Describe object structure in a tree.
@@ -197,28 +218,6 @@ proc checkArgs*(stack: var List, scope: var Object, parameters: openarray[seq[Ob
     names.add(args_names.join(" "))
   let namess = names.join("/")
   raise newError[ParameterError](fmt"Expected parameters not found, expected: {namess}")
-
-# Collection of all base objects.
-type
-  BaseObjects* = ref object
-    global_object*: Object  # Pseudo Object, but not inheriting from Object.
-    base_object*: Object
-    base_nil*: Object
-    # base_block*: Object
-    base_symbol*: Symbol
-    base_number*: Number
-    base_integer*: Integer
-    base_float*: Float
-    base_string*: String
-    base_boolean*: Boolean
-    base_true*: Boolean
-    base_false*: Boolean
-    base_list*: List
-    base_stack*: List
-    base_proc*: Proc
-
-var 
-  base_objects* = new BaseObjects    ## Base of the Object hierarchy.
 
 proc toBoolean*(value: bool): Boolean =
   ## Convert a bool to Boolean.
@@ -280,13 +279,17 @@ proc nilNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
 
 base_objects.base_nil.slots["new"] = newNativeProc(nilNew)
 
-proc objectRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+proc objectToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Object-self -- String }
-  ## Return a representation of an Object.
-  stack.append(newString(self.repr))
+  ## Return a string representation of an Object.
+  var result = "<{$self.class_name}: ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
 
-base_objects.base_object.slots["repr"] = newNativeProc(objectRepr)
-base_objects.global_object.slots["repr"] = base_objects.base_object.slots["repr"]
+base_objects.base_object.slots["$"] = newNativeProc(objectToString)
+base_objects.global_object.slots["$"] = base_objects.base_object.slots["$"]
+
+base_objects.base_object.slots["repr"] = base_objects.base_object.slots["$"]
+base_objects.global_object.slots["repr"] = base_objects.base_object.slots["$"]
 
 method get_slot*(self: Object, slot: string): Object {.base.} =
   ## Get a slot from the object chain, or return nil if not found.
@@ -377,11 +380,11 @@ proc objectIsA*(a, b: Object): bool =
 method `$`*(self: Symbol): string =
   self.value
 
-method repr*(self: Symbol): string =
-  result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: Symbol): string =
+#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc newSymbol*(parent: Object, value: string): Symbol =
   ## Create a new Symbol.
@@ -402,7 +405,15 @@ proc symbolToString*(stack: var List, scope: var Object, self: Object, proc_def:
   ## Convert a Symbol to a String.
   stack.append(newString(Symbol(self).value))
 
-base_objects.base_symbol.slots["toString"] = newNativeProc(symbolToString)
+base_objects.base_symbol.slots["$"] = newNativeProc(symbolToString)
+
+proc symbolRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Symbol-self -- String }
+  ## Display Symbol representation.
+  var result = "<{$self.class_name}: '{Symbol(self).value} ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_symbol.slots["repr"] = newNativeProc(symbolRepr)
 
 proc symbolPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Symbol-self -- }
@@ -503,11 +514,11 @@ base_objects.base_symbol.slots["!="] = newNativeProc(symbolNotEquals)
 method `$`*(self: String): string =
   "\"$#\"" % self.value
 
-method repr*(self: String): string =
-  result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: String): string =
+#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc newString*(parent: Object, value: string): String =
   result = new String
@@ -528,6 +539,21 @@ proc newString*(stack: var List, scope: var Object, self: Object, proc_def: Proc
   stack.append(newString(""))
 
 base_objects.base_string.slots["new"] = newNativeProc(newString)
+
+proc stringToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { String-self -- String }
+  ## Just return a new copy of ourself.
+  stack.append(newString(String(self).value))
+
+base_objects.base_string.slots["$"] = newNativeProc(stringToString)
+
+proc stringRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { String-self -- String }
+  ## Display String representation.
+  var result = "<{$self.class_name}: \"{String(self).value}\" ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_string.slots["repr"] = newNativeProc(stringRepr)
 
 # proc append(self: String, item: char) =
 #   self.value.add(item)
@@ -624,11 +650,11 @@ base_objects.base_number.slots["new"] = newNativeProc(numberNew)
 method `$`*(self: Integer): string =
   result = $self.value
 
-method repr*(self: Integer): string =
-  result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: Integer): string =
+#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc newInteger*(parent: Object): Integer =
   ## Create a new Integer, given a parent Object.
@@ -643,6 +669,35 @@ proc newInteger*(value: int): Integer =
   ## Create a new Integer with base_integer as it's parent.
   result = newInteger(base_objects.base_integer)
   result.value = value
+
+proc integerToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- String }
+  ## Convert the value of an Integer to a String.
+  stack.append(newString($Integer(self).value))
+
+base_objects.base_integer.slots["$"] = newNativeProc(integerToString)
+
+proc integerRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- String }
+  ## Display Integer representation.
+  var result = "<{$self.class_name}: {Integer(self).value} ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_integer.slots["repr"] = newNativeProc(integerRepr)
+
+proc integerPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- }
+  ## Print the value of an Integer.
+  echo(Integer(self).value)
+
+base_objects.base_integer.slots["print"] = newNativeProc(integerPrint)
+
+proc integerToFloat*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Integer-self -- Float }
+  ## Convert an Integer to a Float.
+  stack.append(newFloat(Integer(self).value.float))
+
+base_objects.base_integer.slots["toFloat"] = newNativeProc(integerToFloat)
 
 proc integerAdd*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer/Float Integer-self -- Integer/Float }
@@ -800,27 +855,6 @@ proc integerArithShiftRight*(stack: var List, scope: var Object, self: Object, p
 
 base_objects.base_integer.slots["ashr"] = newNativeProc(integerArithShiftRight)
 
-proc integerPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Integer-self -- }
-  ## Print the value of an Integer.
-  echo(Integer(self).value)
-
-base_objects.base_integer.slots["print"] = newNativeProc(integerPrint)
-
-proc integerToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Integer-self -- String }
-  ## Convert the value of an Integer to a String.
-  stack.append(newString($Integer(self).value))
-
-base_objects.base_integer.slots["toString"] = newNativeProc(integerToString)
-
-proc integerToFloat*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Integer-self -- Float }
-  ## Convert an Integer to a Float.
-  stack.append(newFloat(Integer(self).value.float))
-
-base_objects.base_integer.slots["toFloat"] = newNativeProc(integerToFloat)
-
 proc integerEquals*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer/Float Integer-self -- Boolean }
   ## Determine whether the value of an Integer is the same as that of another Integer or a Float.
@@ -913,12 +947,12 @@ method `$`*(self: Float): string =
   #result = self.value.formatFloat(precision = -1)
   result = $self.value
 
-method repr*(self: Float): string =
-  #result = "<{$self.type}: <{self.value.formatFloat(precision = -1)}> ref {cast[int](self):#x} Slots: [\n".fmt
-  result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: Float): string =
+#   #result = "<{$self.type}: <{self.value.formatFloat(precision = -1)}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc newFloat*(parent: Object, value: float): Float =
   ## Create a new Float, given a parent and value.
@@ -933,6 +967,35 @@ base_objects.global_object.slots[floatName] = base_objects.base_float
 proc newFloat*(value: float): Float =
   ## Create a new Float with base_float as it's parent.
   result = newFloat(base_objects.base_float, value)
+
+proc floatToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Float-self -- String }
+  ## Convert the value of a Float to a String.
+  stack.append(newString($Float(self).value))
+
+base_objects.base_float.slots["$"] = newNativeProc(floatToString)
+
+proc floatRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Float-self -- String }
+  ## Display Float representation.
+  var result = "<{$self.class_name}: {Float(self).value} ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_float.slots["repr"] = newNativeProc(floatRepr)
+
+proc floatPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Float-self -- }
+  ## Print the value of a Float.
+  echo($Float(self).value)
+
+base_objects.base_float.slots["print"] = newNativeProc(floatPrint)
+
+proc floatToInteger*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Float-self -- Integer }
+  ## Convert the value of a Float to an Integer.
+  stack.append(newInteger(Float(self).value.int))
+
+base_objects.base_float.slots["toInteger"] = newNativeProc(floatToInteger)
 
 proc floatAdd*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Float/Integer Float-self -- Float }
@@ -996,27 +1059,6 @@ proc floatNegate*(stack: var List, scope: var Object, self: Object, proc_def: Pr
   stack.append(newFloat(-Float(self).value))
 
 base_objects.base_float.slots["neg"] = newNativeProc(floatNegate) 
-
-proc floatPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Float-self -- }
-  ## Print the value of a Float.
-  echo($Float(self).value)
-
-base_objects.base_float.slots["print"] = newNativeProc(floatPrint)
-
-proc floatToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Float-self -- String }
-  ## Convert the value of a Float to a String.
-  stack.append(newString($Float(self).value))
-
-base_objects.base_float.slots["toString"] = newNativeProc(floatToString)
-
-proc floatToInteger*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Float-self -- Integer }
-  ## Convert the value of a Float to an Integer.
-  stack.append(newInteger(Float(self).value.int))
-
-base_objects.base_float.slots["toInteger"] = newNativeProc(floatToInteger)
 
 proc floatEquals*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Float/Integer Float-self -- Boolean }
@@ -1107,11 +1149,11 @@ base_objects.base_float.slots["!="] = newNativeProc(floatNotEqual)
 method `$`*(self: Boolean): string =
   result = $self.value
 
-method repr*(self: Boolean): string =
-  result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] >".fmt
+# method repr*(self: Boolean): string =
+#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] >".fmt
 
 proc newBoolean(parent: Object, value: bool): Boolean =
   ## Create a new Boolean.
@@ -1126,6 +1168,21 @@ base_objects.base_true = newBoolean(base_objects.base_boolean, true)
 base_objects.global_object.slots[trueObjectName] = base_objects.base_true
 base_objects.base_false = newBoolean(base_objects.base_boolean, false)
 base_objects.global_object.slots[falseObjectName] = base_objects.base_false
+
+proc booleanToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Boolean-self -- String }
+  ## Convert the value of a Boolean to a String.
+  stack.append(newString($Boolean(self).value))
+
+base_objects.base_boolean.slots["$"] = newNativeProc(booleanToString)
+
+proc booleanRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Boolean-self -- String }
+  ## Display Boolean representation.
+  var result = "<{$self.class_name}: {Boolean(self).value} ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_boolean.slots["repr"] = newNativeProc(booleanRepr)
 
 proc booleanPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Boolean-self -- }
@@ -1195,19 +1252,19 @@ method `$`*(self: List): string =
 
   result.add("]")
 
-method repr*(self: List): string =
-  result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
-  for name, value in self.slots.pairs:
-    result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-  result &= "] > [".fmt
-  var separator = ""
+# method repr*(self: List): string =
+#   result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
+#   for name, value in self.slots.pairs:
+#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
+#   result &= "] > [".fmt
+#   var separator = ""
 
-  for value in self.items:
-    result.add("$#$#" % [separator, $value])
-    if separator == "":
-      separator = " "
+#   for value in self.items:
+#     result.add("$#$#" % [separator, $value])
+#     if separator == "":
+#       separator = " "
 
-  result.add("]")
+#   result.add("]")
 
 proc newList*(parent: Object): List =
   ## Create a new empty List.
@@ -1244,6 +1301,21 @@ iterator items*(self: List): Object =
   ## Iterate over a Lists items.
   for item in self.items:
     yield item
+
+proc listToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { List-self -- String }
+  ## Convert the value of a List to a String.
+  stack.append(newString($List(self)))
+
+base_objects.base_list.slots["$"] = newNativeProc(listToString)
+
+proc listRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { List-self -- String }
+  ## Display Boolean representation.
+  var result = "<{$self.class_name}: {$List(self)} ref {cast[int](self):#x}>".fmt
+  stack.append(newString(result))
+
+base_objects.base_list.slots["repr"] = newNativeProc(listRepr)
 
 proc len*(self: List): int =
   ## Return the number of items in a List

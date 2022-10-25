@@ -317,29 +317,29 @@ proc parse_data*(data: Stream): List =
   result = lexer.parse_list(data, top_level=true)
   lexer.close()
 
-when isMainModule:
-  import streams, parseopt
+# when isMainModule:
+#   import streams, parseopt
 
-  var filename = ""
+#   var filename = ""
 
-  # Parse the command line.
-  for kind, key, value in getOpt():
-    case kind
-      of cmdArgument:
-        if filename == "":
-          filename = key
-        else:
-          quit("Too many files specified.")
-      else:
-        quit("No options accepted.")
+#   # Parse the command line.
+#   for kind, key, value in getOpt():
+#     case kind
+#       of cmdArgument:
+#         if filename == "":
+#           filename = key
+#         else:
+#           quit("Too many files specified.")
+#       else:
+#         quit("No options accepted.")
 
-  if filename == "":
-    quit("Filename not specified.")
+#   if filename == "":
+#     quit("Filename not specified.")
 
-  let stream = newFileStream(filename)
+#   let stream = newFileStream(filename)
 
-  echo base_objects.global_object.repr_tree("global")
+#   echo base_objects.global_object.repr_tree("global")
 
-  let data = parse_data(stream)
-  echo("** Parsed Data **\n")
-  echo($data)
+#   let data = parse_data(stream)
+#   echo("** Parsed Data **\n")
+#   echo($data)
