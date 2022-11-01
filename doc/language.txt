@@ -41,6 +41,7 @@
     - scope - Scope Object.
     - name - Proc name String.
     - code - List of code.
+    - do { ... Proc-self -- ... } - Call a Proc directly.
 
 - NativeProc(Proc) - System builtins.
 
@@ -152,6 +153,8 @@
                                   which is put on the stack.
 
 - Stack(List/Object)
+    - $ { List-self -- String } - Convert to String.
+    - repr { List-self -- String } - Display List representation.
     - .drop { Object -- } - Pop top of stack and discard
     - .dup { Object -- Object Object } - Duplicate top od stack.
     - .swap { Object-1 Object-2 -- Object-2 Object-1 } - Swap top two items on stack.

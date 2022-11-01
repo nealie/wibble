@@ -21,7 +21,7 @@ while true:
 
     #echo($parsed_input)
     exec(stack, scope, parsed_input)
-    echo("Stack {stack}".fmt)
+    echo("Stack {to_repr(stack, scope, stack)}".fmt)
   except EOFError:
     break
 

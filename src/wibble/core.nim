@@ -22,6 +22,8 @@ const
   # Slot names.
   objectSlotParent* = "_parent"
   objectSlotCall* = "_call"
+  objectSlotStringify* = "$"
+  objectSlotRepr* = "repr"
   procSlotArgs* = "arguments"
   procSlotReturn* = "returns"
   procSlotScope* = "scope"
@@ -158,14 +160,41 @@ proc newError*[T](msg: string): T =
   result = new T
   result.msg = "{$T.type}: {msg}".fmt
 
-method `$`*(self: Object): string {.base.} =
-  result = "<{$self.class_name}: ref {cast[int](self):#x}>".fmt
+proc get_slot*(self: Object, slot: string): Object =
+  ## Get a slot from the object chain, or return nil if not found.
+  if slot notIn self.slots:
+    var parent = self.slots[objectSlotParent]
+    if parent.isNil:
+      return nil
+    else:
+      return parent.get_slot(slot)
+  # if self.slots[slot] == base_objects.base_block:
+  #   return nil
+  return self.slots[slot]
 
-# method repr*(self: Object): string {.base.} =
-#   result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.type} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
+proc callable*(self: Object): bool =
+  ## Determine whether an Object is callable.
+  result = objectSlotCall in self.slots
+
+proc call_slot*(stack: var List, scope: var Object, self: Object, slot: string) =
+  ## Call a callable slot on an Object.
+  let obj = self.get_slot(slot)
+  if obj.isNil:
+    raise newError[ObjectError](fmt"call_slot - Slot {slot} not found.")
+
+  # Is it callable?
+  if obj.callable:
+    Proc(obj).call(stack, scope, self, Proc(obj))
+  else:
+    raise newError[ObjectError](fmt"call_slot - Slot {slot} not callable.")
+
+proc to_string*(stack: var List, scope: var Object, self: Object): string =
+  call_slot(stack, scope, self, objectSlotStringify)
+  result = String(stack.pop).value
+
+proc to_repr*(stack: var List, scope: var Object, self: Object): string =
+  call_slot(stack, scope, self, objectSlotRepr)
+  result = String(stack.pop).value
 
 proc repr_tree*(self: Object, name: string, indent: string = ""): string =
   ## Describe object structure in a tree.
@@ -187,7 +216,6 @@ proc repr_tree*(self: Object, name: string, indent: string = ""): string =
 proc checkArgs*(stack: var List, scope: var Object, parameters: openarray[seq[Object]]): int =
   ## Check that the specified arguments exist on the stack.
   ## Try to match for each set of arguments and return the index matched.
-
   result = 0
 
   for index, args in parameters:
@@ -261,10 +289,6 @@ proc newObject*(): Object =
   ## Create a new Object, inheriting from the base_object.
   result = newObject(base_objects.base_object)
 
-proc callable*(self: Object): bool =
-  ## Determine whether an Object is callable.
-  result = objectSlotCall in self.slots
-
 proc objectNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Object-self -- Object }
   ## Create a new Object.
@@ -285,23 +309,11 @@ proc objectToString*(stack: var List, scope: var Object, self: Object, proc_def:
   var result = "<{$self.class_name}: ref {cast[int](self):#x}>".fmt
   stack.append(newString(result))
 
-base_objects.base_object.slots["$"] = newNativeProc(objectToString)
-base_objects.global_object.slots["$"] = base_objects.base_object.slots["$"]
+base_objects.base_object.slots[objectSlotStringify] = newNativeProc(objectToString)
+base_objects.global_object.slots[objectSlotStringify] = base_objects.base_object.slots[objectSlotStringify]
 
-base_objects.base_object.slots["repr"] = base_objects.base_object.slots["$"]
-base_objects.global_object.slots["repr"] = base_objects.base_object.slots["$"]
-
-method get_slot*(self: Object, slot: string): Object {.base.} =
-  ## Get a slot from the object chain, or return nil if not found.
-  if slot notIn self.slots:
-    var parent = self.slots[objectSlotParent]
-    if parent.isNil:
-      return nil
-    else:
-      return parent.get_slot(slot)
-  # if self.slots[slot] == base_objects.base_block:
-  #   return nil
-  return self.slots[slot]
+base_objects.base_object.slots[objectSlotRepr] = base_objects.base_object.slots[objectSlotStringify]
+base_objects.global_object.slots[objectSlotRepr] = base_objects.base_object.slots[objectSlotStringify]
 
 proc objectGetSlots*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Object-self -- List }
@@ -377,15 +389,6 @@ proc objectIsA*(a, b: Object): bool =
 
 # Symbol
 
-method `$`*(self: Symbol): string =
-  self.value
-
-# method repr*(self: Symbol): string =
-#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
-
 proc newSymbol*(parent: Object, value: string): Symbol =
   ## Create a new Symbol.
   result = new Symbol
@@ -405,15 +408,8 @@ proc symbolToString*(stack: var List, scope: var Object, self: Object, proc_def:
   ## Convert a Symbol to a String.
   stack.append(newString(Symbol(self).value))
 
-base_objects.base_symbol.slots["$"] = newNativeProc(symbolToString)
-
-proc symbolRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Symbol-self -- String }
-  ## Display Symbol representation.
-  var result = "<{$self.class_name}: '{Symbol(self).value} ref {cast[int](self):#x}>".fmt
-  stack.append(newString(result))
-
-base_objects.base_symbol.slots["repr"] = newNativeProc(symbolRepr)
+base_objects.base_symbol.slots[objectSlotStringify] = newNativeProc(symbolToString)
+base_objects.base_symbol.slots[objectSlotRepr] = newNativeProc(symbolToString)
 
 proc symbolPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Symbol-self -- }
@@ -442,9 +438,7 @@ proc symbolGetSlot*(stack: var List, scope: var Object, self: Object, proc_def: 
     stack.append(scope.slots[name])
   else:
     # Get local, so we know where to stop looking.
-    #let local = scope.get_slot(localObjectName)
     var parent = scope.slots[objectSlotParent]
-    #while parent != local and not parent.isNil:
     while not parent.isNil:
       if name in parent.slots:
         stack.append(parent.slots[name])
@@ -469,9 +463,7 @@ proc symbolSetSlot*(stack: var List, scope: var Object, self: Object, proc_def: 
     scope.slots[name] = stack.pop
   else:
     # Get local, so we know where to stop looking.
-    #let local = scope.get_slot(localObjectName)
     var parent = scope.slots[objectSlotParent]
-    #while parent != local and not parent.isNil:
     while not parent.isNil:
       if name in parent.slots:
         parent.slots[name] = stack.pop
@@ -511,15 +503,6 @@ base_objects.base_symbol.slots["!="] = newNativeProc(symbolNotEquals)
 
 # String
 
-method `$`*(self: String): string =
-  "\"$#\"" % self.value
-
-# method repr*(self: String): string =
-#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
-
 proc newString*(parent: Object, value: string): String =
   result = new String
   result.class_name = stringName
@@ -545,18 +528,15 @@ proc stringToString*(stack: var List, scope: var Object, self: Object, proc_def:
   ## Just return a new copy of ourself.
   stack.append(newString(String(self).value))
 
-base_objects.base_string.slots["$"] = newNativeProc(stringToString)
+base_objects.base_string.slots[objectSlotStringify] = newNativeProc(stringToString)
 
 proc stringRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { String-self -- String }
   ## Display String representation.
-  var result = "<{$self.class_name}: \"{String(self).value}\" ref {cast[int](self):#x}>".fmt
+  var result = "\"{String(self).value}\"".fmt
   stack.append(newString(result))
 
-base_objects.base_string.slots["repr"] = newNativeProc(stringRepr)
-
-# proc append(self: String, item: char) =
-#   self.value.add(item)
+base_objects.base_string.slots[objectSlotRepr] = newNativeProc(stringRepr)
 
 proc stringAppend*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { String String-self -- String }
@@ -647,15 +627,6 @@ base_objects.base_number.slots["new"] = newNativeProc(numberNew)
 
 # Integer
 
-method `$`*(self: Integer): string =
-  result = $self.value
-
-# method repr*(self: Integer): string =
-#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
-
 proc newInteger*(parent: Object): Integer =
   ## Create a new Integer, given a parent Object.
   result = new Integer
@@ -675,15 +646,8 @@ proc integerToString*(stack: var List, scope: var Object, self: Object, proc_def
   ## Convert the value of an Integer to a String.
   stack.append(newString($Integer(self).value))
 
-base_objects.base_integer.slots["$"] = newNativeProc(integerToString)
-
-proc integerRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Integer-self -- String }
-  ## Display Integer representation.
-  var result = "<{$self.class_name}: {Integer(self).value} ref {cast[int](self):#x}>".fmt
-  stack.append(newString(result))
-
-base_objects.base_integer.slots["repr"] = newNativeProc(integerRepr)
+base_objects.base_integer.slots[objectSlotStringify] = newNativeProc(integerToString)
+base_objects.base_integer.slots[objectSlotRepr] = newNativeProc(integerToString)
 
 proc integerPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Integer-self -- }
@@ -943,17 +907,6 @@ base_objects.base_integer.slots["!="] = newNativeProc(integerNotOrEqual)
 
 # Float
 
-method `$`*(self: Float): string =
-  #result = self.value.formatFloat(precision = -1)
-  result = $self.value
-
-# method repr*(self: Float): string =
-#   #result = "<{$self.type}: <{self.value.formatFloat(precision = -1)}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
-
 proc newFloat*(parent: Object, value: float): Float =
   ## Create a new Float, given a parent and value.
   result = new Float
@@ -973,15 +926,8 @@ proc floatToString*(stack: var List, scope: var Object, self: Object, proc_def: 
   ## Convert the value of a Float to a String.
   stack.append(newString($Float(self).value))
 
-base_objects.base_float.slots["$"] = newNativeProc(floatToString)
-
-proc floatRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Float-self -- String }
-  ## Display Float representation.
-  var result = "<{$self.class_name}: {Float(self).value} ref {cast[int](self):#x}>".fmt
-  stack.append(newString(result))
-
-base_objects.base_float.slots["repr"] = newNativeProc(floatRepr)
+base_objects.base_float.slots[objectSlotStringify] = newNativeProc(floatToString)
+base_objects.base_float.slots[objectSlotRepr] = newNativeProc(floatToString)
 
 proc floatPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Float-self -- }
@@ -1146,15 +1092,6 @@ base_objects.base_float.slots["!="] = newNativeProc(floatNotEqual)
 
 # Booleans.
 
-method `$`*(self: Boolean): string =
-  result = $self.value
-
-# method repr*(self: Boolean): string =
-#   result = "<{$self.class_name}: <{self.value}> ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] >".fmt
-
 proc newBoolean(parent: Object, value: bool): Boolean =
   ## Create a new Boolean.
   result = new Boolean
@@ -1174,15 +1111,8 @@ proc booleanToString*(stack: var List, scope: var Object, self: Object, proc_def
   ## Convert the value of a Boolean to a String.
   stack.append(newString($Boolean(self).value))
 
-base_objects.base_boolean.slots["$"] = newNativeProc(booleanToString)
-
-proc booleanRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Boolean-self -- String }
-  ## Display Boolean representation.
-  var result = "<{$self.class_name}: {Boolean(self).value} ref {cast[int](self):#x}>".fmt
-  stack.append(newString(result))
-
-base_objects.base_boolean.slots["repr"] = newNativeProc(booleanRepr)
+base_objects.base_boolean.slots[objectSlotStringify] = newNativeProc(booleanToString)
+base_objects.base_boolean.slots[objectSlotRepr] = newNativeProc(booleanToString)
 
 proc booleanPrint*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { Boolean-self -- }
@@ -1236,36 +1166,6 @@ base_objects.base_boolean.slots["not"] = newNativeProc(booleanNot)
 
 # List
 
-method `$`*(self: List): string =
-  result = "["
-  var separator = ""
-
-  for value in self.items:
-    if value == self:
-      result.add("{separator}<{$value.class_name} ref {cast[int](value):#x}>".fmt)
-      if separator == "":
-        separator = " "
-    else:
-      result.add("{separator}{value}".fmt)
-      if separator == "":
-        separator = " "
-
-  result.add("]")
-
-# method repr*(self: List): string =
-#   result = "<{$self.class_name}: ref {cast[int](self):#x} Slots: [\n".fmt
-#   for name, value in self.slots.pairs:
-#     result &= "  \"{name}\" {$value.class_name} ref {cast[int](value):#x}\n".fmt
-#   result &= "] > [".fmt
-#   var separator = ""
-
-#   for value in self.items:
-#     result.add("$#$#" % [separator, $value])
-#     if separator == "":
-#       separator = " "
-
-#   result.add("]")
-
 proc newList*(parent: Object): List =
   ## Create a new empty List.
   result = new List
@@ -1305,17 +1205,27 @@ iterator items*(self: List): Object =
 proc listToString*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
   ## { List-self -- String }
   ## Convert the value of a List to a String.
-  stack.append(newString($List(self)))
+  var result = "["
+  var separator = ""
 
-base_objects.base_list.slots["$"] = newNativeProc(listToString)
+  for value in List(self).items:
+    if value == self:
+      result.add("{separator}<{$value.class_name} ref {cast[int](value):#x}>".fmt)
+      if separator == "":
+        separator = " "
+    else:
+      # Call Object's stringify.
+      call_slot(stack, scope, value, objectSlotRepr)
+      let value_string = String(stack.pop).value
+      result.add("{separator}{value_string}".fmt)
+      if separator == "":
+        separator = " "
 
-proc listRepr*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { List-self -- String }
-  ## Display Boolean representation.
-  var result = "<{$self.class_name}: {$List(self)} ref {cast[int](self):#x}>".fmt
+  result.add("]")
   stack.append(newString(result))
 
-base_objects.base_list.slots["repr"] = newNativeProc(listRepr)
+base_objects.base_list.slots[objectSlotStringify] = newNativeProc(listToString)
+base_objects.base_list.slots[objectSlotRepr] = newNativeProc(listToString)
 
 proc len*(self: List): int =
   ## Return the number of items in a List
@@ -1420,7 +1330,7 @@ base_objects.base_list.slots["at"] = newNativeProc(listAt)
 
 ## Stacks
 ## A Stack is a List, but has a different set of methods.
-## All Stack methods begin with a full stop.
+## Most Stack methods begin with a full stop.
 
 proc newStack*(parent: Object): List =
   ## Create a new Stack inheriting from another Stack.
@@ -1430,6 +1340,9 @@ proc newStack*(parent: Object): List =
 
 base_objects.base_stack = newStack(base_objects.base_Object)
 base_objects.global_object.slots[stackName] = base_objects.base_stack
+
+base_objects.base_stack.slots[objectSlotStringify] = newNativeProc(listToString)
+base_objects.base_stack.slots[objectSlotRepr] = newNativeProc(listToString)
 
 proc newStack*(): List =
   ## Create a new Stack with base_stack as it's parent.

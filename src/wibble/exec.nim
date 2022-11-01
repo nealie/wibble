@@ -3,7 +3,7 @@
 import std/[strutils, strformat, streams, tables, os, dynlib]
 import core, parser #, thread
 
-const debug = true
+const debug = false
 
 type
   ExecError* = ref object of CoreError
@@ -29,7 +29,7 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
   ## If the result is callable, it is called, otherwise it is placed on the stack.
   
   for item in expr:
-    when debug: echo ">> " & $item
+    when debug: echo ">> " & to_string(stack, scope, item)
     # Some Objects are just put on the stack.
     if item of base_objects.base_number.type or
       item of base_objects.base_string.type or
@@ -66,18 +66,15 @@ proc exec*(stack: var List, scope: var Object, expr: List) =
           if stack.len > 0:
             # Look for a slot in the TOS chain.
             let tos = stack.last
-            when debug: echo "* " & $tos
+            when debug: echo "* " & to_repr(stack, scope, tos)
             let obj = tos.get_slot(item_symbol.value)
-            #if obj.isNil or obj == stack:
             if obj.isNil:
               when debug: echo("* No slot in TOS")
             else:
               discard stack.pop
               if obj.callable:
                 when debug: echo "* Callable on TOS"
-                #when debug: echo "** " & $stack
                 Proc(obj).call(stack, scope, tos, Proc(obj))
-                #when debug: echo "&& " & $stack
               else:
                 when debug: echo "* Add from TOS to stack"
                 stack.append(obj)
@@ -280,7 +277,6 @@ proc importModule*(scope: var Object, module_name: string) =
         scope.slots[name] = exec_scope
       else:
         let
-          #(dir, oldname, ext) = path.splitFile()
           (dir, _) = path.splitPath()
           lib_path = (dir / libPrefix & name).addFileExt(libExt)
         if not lib_path.fileExists():
@@ -390,7 +386,7 @@ proc procExec*(stack: var List, scope: var Object, self: Object, proc_def: Proc)
       tos = stack.pop
 
     if not objectIsA(tos, kind):
-      raise newError[ProcExecError](fmt"Invalid parameter type, expected: {exec_args}.")
+      raise newError[ProcExecError](fmt"Invalid parameter type, expected: {to_repr(stack, scope, exec_args)}.")
 
     exec_scope.slots[name] = tos
     index.dec
@@ -442,6 +438,14 @@ proc newBaseProc(): Proc =
 base_objects.base_proc = newBaseProc()
 base_objects.global_object.slots[procName] = base_objects.base_proc
 
+proc doProc*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { ... Proc-self -- ... }
+  ## Call a Proc directly.
+  Proc(self).call(stack, scope, self, Proc(self))
+
+base_objects.base_proc.slots["do"] = newNativeProc(doProc)
+
+
 proc newProc*(scope: Object, arguments: List, returns: List, the_proc: List): Proc =
   ## Create a new Proc.
   result = new Proc
@@ -464,7 +468,7 @@ proc procNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) 
 
   if the_spec.items.len < 3:
     # There needs to be a parameter list, return list and at least one operation.
-    raise newError[ProcError](fmt"Invalid proc definition: {the_spec}.")
+    raise newError[ProcError](fmt"Invalid proc definition: {to_repr(stack, scope, the_spec)}.")
 
   let
     params = the_spec.items[0]
