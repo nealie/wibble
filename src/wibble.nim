@@ -9,7 +9,8 @@ var
   stack = newStack()
   scope = newScope()
 
-#echo stack.repr_tree("stack")
+# echo stack.repr_tree("stack")
+# echo scope.repr_tree("scope")
 
 while true:
   try:

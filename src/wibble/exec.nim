@@ -221,7 +221,7 @@ proc integerFor*(stack: var List, scope: var Object, self: Object, proc_def: Pro
 base_objects.base_integer.slots["for"] = newNativeProc(integerFor)
 
 
-# String
+# Symbol
 
 const
   fileExt = "wib"
@@ -232,23 +232,26 @@ const
 type
   InitProc* = proc(base_objs: var BaseObjects, stack: var List, scope: var Object) {.gcsafe, stdcall.}
 
-proc stringExecFile*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { String-self -- }
+proc symbolExecFile*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Symbol-self -- }
   ## Read and execute code from a file using the current scope.
   try:
     let
-      path = absolutePath(String(self).value).addFileExt(fileExt)
+      path = absolutePath(Symbol(self).value).addFileExt(fileExt)
       stream = openFileStream(path)
       parsed_input = parse_data(stream)
     exec(stack, scope, parsed_input)
   except IOError as error:
     raise newError[ExecError](fmt"execFile - {error.msg}")
 
-base_objects.base_string.slots["execFile"] = newNativeProc(stringExecFile)
+base_objects.base_symbol.slots["execFile"] = newNativeProc(symbolExecFile)
 
-proc importModule*(scope: var Object, module_name: string) =
+proc symbolImport*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+  ## { Symbol-self -- }
   ## Import a module and save into current scope.
   ## If the module has already been imported, simply return that.
+  #scope.importModule(String(self).value)
+  let module_name = Symbol(self).value
   try:
     let
       path = absolutePath(module_name)
@@ -297,9 +300,6 @@ proc importModule*(scope: var Object, module_name: string) =
           raise newError[ExecError](fmt"import - Can't find {initName} in {lib_path}")
 
         # Call library.
-        echo "> base_objects: ref {cast[int](base_objects):#x}".fmt
-        echo "> stack: ref {cast[int](exec_stack):#x}".fmt
-        echo "> scope: ref {cast[int](exec_scope):#x}".fmt
         init(base_objects, exec_stack, exec_scope)
 
         modulesObj.slots[name] = exec_scope
@@ -308,22 +308,6 @@ proc importModule*(scope: var Object, module_name: string) =
     raise newError[ExecError](fmt"import - {error.msg}")
   except OSError as error:
     raise newError[ExecError](fmt"import - {error.msg}")
-
-proc stringImport*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { String-self -- }
-  ## Import a module and save into current scope.
-  ## If the module has already been imported, simply return that.
-  scope.importModule(String(self).value)
-
-base_objects.base_string.slots["import"] = newNativeProc(stringImport)
-
-# Symbol
-
-proc symbolImport*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Symbol-self -- }
-  ## Import a module and save into current scope.
-  ## If the module has already been imported, simply return that.
-  scope.importModule(Symbol(self).value)
 
 base_objects.base_symbol.slots["import"] = newNativeProc(symbolImport)
 

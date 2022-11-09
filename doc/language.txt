@@ -54,10 +54,11 @@
     - set { Object Symbol-self -- } - Operate on local instead of Symbol.
     - = { Symbol/String Symbol-self -- Boolean } - Check for equality.
     - != { Symbol/String Symbol-self -- Boolean } - Check for inequality.
+    - execFile { Symbol -- } - Read and execute code from file.
     - import { Symbol-self -- } - Import a module and save into current scope.
                                   If the module has already been imported, simply return that.
 
-- String(String/Object)
+- String(String/Symbol)
     - new { -- String } - Create new empty String.
     - $ { String-self -- String } - Just return a new copy of ourself.
     - repr { String-self -- String } - Display String representation.
@@ -67,9 +68,6 @@
     - = { String/Symbol Symbol-self -- Boolean } - Check for equality.
     - != { String/Symbol Symbol-self -- Boolean } - Check for inequality.
     - in { String/Symbol Symbol-self -- Boolean } - Check for existance within String.
-    - execFile { String -- } - Read and execute code from file.
-    - import { String-self -- } - Import a module and save into current scope.
-                                  If the module has already been imported, simply return that.
 
 - Number(Object)
     - new { Number-self - } - Always raises a NumberError.
