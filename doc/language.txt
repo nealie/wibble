@@ -1,160 +1,186 @@
 - global(Object)
-    - global(self)
-    - Object
-    - Nil(Object) - Represents uninitialised values.
-    - modules(Object)
-    - repr
-    - slots
-    - create
-    - set
-    - get
-    - Symbol
-    - String
-    - Number
-    - Integer
-    - Float
-    - Boolean
-    - true
-    - false
-    - List
-    - Stack
-    - def
+  - global(self)
+  - Object
+  - Nil(Object) - Represents uninitialised values.
+  - modules(Object)
+  - repr
+  - slots
+  - create
+  - set
+  - get
+  - Symbol
+  - String
+  - Number
+  - Integer
+  - Float
+  - Boolean
+  - true
+  - false
+  - List
+  - Stack
+  - def
 
 - Object
-    - _parent - Parent Object.
-    - new { Object-self -- Object } - Create new Object.
-    - $ { Object-self -- String } - Display Object representation.
-    - repr { Object-self -- String } - Display Object representation.
-    - slots { Object-self -- List } - Return List of slots.
-    - create { Symbol Object-self -- } - Create new slot.
-    - set { Object Symbol Object-self -- } - Set value of slot.
-    - get { Symbol Object-self -- Object } - Get slot value.
-    - def { List Symbol Object-self - } - Define a procedure and store it in an Object.
+  - _parent - Parent Object.
+  - new { Object-self -- Object } - Create new Object.
+  - $ { Object-self -- String } - Display Object representation.
+  - repr { Object-self -- String } - Display Object representation.
+  - slots { Object-self -- List } - Return List of slots.
+  - create { Symbol Object-self -- } - Create new slot.
+  - set { Object Symbol Object-self -- } - Set value of slot.
+  - get { Symbol Object-self -- Object } - Get slot value.
+  - def { List Symbol Object-self - } - Define a procedure and store it in an Object.
 
 - Nil - Object
-    - new { Object-self -- Object-self } - Nil is a singleton.
+  - new { Object-self -- Object-self } - Nil is a singleton.
 
 - Proc(Object) - Created using List.proc of Object.def
-    - _call - Callable.
-    - arguments - List of Lists of argument name and type pairs.
-    - returns - List of Lists of return value name and type pairs.
-    - scope - Scope Object.
-    - name - Proc name String.
-    - code - List of code.
-    - do { ... Proc-self -- ... } - Call a Proc directly.
+  - _call - Callable.
+  - arguments - List of Lists of argument name and type pairs.
+  - returns - List of Lists of return value name and type pairs.
+  - scope - Scope Object.
+  - name - Proc name String.
+  - code - List of code.
+  - do { ... Proc-self -- ... } - Call a Proc directly.
 
 - NativeProc(Proc) - System builtins.
 
 - Symbol(Symbol/Object)
-    - $ { Symbol-self -- String } - Convert to String.
-    - repr { Symbol-self -- String } - Display Symbol representation.
-    - print { Symbol-self -- } - Print value.
-    - create { Symbol-self -- } - Operate on local instead of Symbol.
-    - get { Symbol-self -- Object } - Operate on local instead of Symbol.
-    - set { Object Symbol-self -- } - Operate on local instead of Symbol.
-    - = { Symbol/String Symbol-self -- Boolean } - Check for equality.
-    - != { Symbol/String Symbol-self -- Boolean } - Check for inequality.
-    - execFile { Symbol -- } - Read and execute code from file.
-    - import { Symbol-self -- } - Import a module and save into current scope.
-                                  If the module has already been imported, simply return that.
+  - $ { Symbol-self -- String } - Convert to String.
+  - repr { Symbol-self -- String } - Display Symbol representation.
+  - print { Symbol-self -- } - Print value.
+  - create { Symbol-self -- } - Operate on local instead of Symbol.
+  - get { Symbol-self -- Object } - Operate on local instead of Symbol.
+  - set { Object Symbol-self -- } - Operate on local instead of Symbol.
+  - = { Symbol/String Symbol-self -- Boolean } - Check for equality.
+  - != { Symbol/String Symbol-self -- Boolean } - Check for inequality.
+  - execFile { Symbol -- } - Read and execute code from file.
+  - import { Symbol-self -- } - Import a module and save into current scope.
+                                If the module has already been imported, simply return that.
 
 - String(String/Symbol)
-    - new { -- String } - Create new empty String.
-    - $ { String-self -- String } - Just return a new copy of ourself.
-    - repr { String-self -- String } - Display String representation.
-    - & { String String-self -- String } - Append two Strings.
-    - print { String-self -- } - Print value.
-    - toSymbol { String-self -- Symbol } - Convert to Symbol.
-    - = { String/Symbol Symbol-self -- Boolean } - Check for equality.
-    - != { String/Symbol Symbol-self -- Boolean } - Check for inequality.
-    - in { String/Symbol Symbol-self -- Boolean } - Check for existance within String.
+  - new { -- String } - Create new empty String.
+  - $ { String-self -- String } - Just return a new copy of ourself.
+  - repr { String-self -- String } - Display String representation.
+  - & { String String-self -- String } - Append two Strings.
+  - print { String-self -- } - Print value.
+  - toSymbol { String-self -- Symbol } - Convert to Symbol.
+  - = { String/Symbol Symbol-self -- Boolean } - Check for equality.
+  - != { String/Symbol Symbol-self -- Boolean } - Check for inequality.
+  - in { String/Symbol Symbol-self -- Boolean } - Check for existance within String.
 
 - Number(Object)
-    - new { Number-self - } - Always raises a NumberError.
+  - new { Number-self - } - Always raises a NumberError.
 
 - Integer(Integer/Number)
-    - $ { Integer-self -- String } - Convert to String.
-    - repr { Integer-self -- String } - Display Integer representation.
-    - print { Integer-self -- } - Print value.
-    - toFloat { Integer-self -- Float } - Convert to Float.
-    - + { Integer/Float Integer-self -- Integer/Float } - Add to Integer.
-    - - { Integer/Float Integer-self -- Integer/Float } - Subtract from Integer.
-    - * { Integer/Float Integer-self -- Integer/Float } - Multiply Integer.
-    - / { Integer/Float Integer-self -- Integer/Float } - Divide Integer.
-    - % { Integer/Float Integer-self -- Integer/Float } - Integer Modulus.
-    - neg { Integer-self -- Integer } - Negate value.
-    - not { Integer-self -- Integer } - Bitwise complement.
-    - and { Integer Integer-self -- Integer } - Bitwise and.
-    - or { Integer Integer-self -- Integer } - Bitwise or.
-    - xor { Integer Integer-self -- Integer } - Bitwise xor.
-    - shl { Integer Integer-self -- Integer } - Bitwise shift left.
-    - shr { Integer Integer-self -- Integer } - Bitwise shift right.
-    - ashr { Integer Integer-self -- Integer } - Bitwise arithmetic shift right.
-    - = { Integer/Float Integer-self -- Boolean } - Check for equality.
-    - < { Integer/Float Integer-self -- Boolean } - Check less than.
-    - <= { Integer/Float Integer-self -- Boolean } - Check less than or equal.
-    - > { Integer/Float Integer-self -- Boolean } - Check greater than.
-    - >= { Integer/Float Integer-self -- Boolean } - Check greater than or equal.
-    - != { Integer/Float Integer-self -- Boolean } - Check for inequality.
-    - for { List Integer Integer-self / List Integer-self -- } -
-            Iterate either from the first Integer to the second Integer, or from 1 to the Integer,
-            putting the value onto the stack and calling the List. If the first Integer is greater
-            than the second, the values decrement.
+  - $ { Integer-self -- String } - Convert to String.
+  - repr { Integer-self -- String } - Display Integer representation.
+  - print { Integer-self -- } - Print value.
+  - toFloat { Integer-self -- Float } - Convert to Float.
+  - + { Integer/Float Integer-self -- Integer/Float } - Add to Integer.
+  - - { Integer/Float Integer-self -- Integer/Float } - Subtract from Integer.
+  - * { Integer/Float Integer-self -- Integer/Float } - Multiply Integer.
+  - / { Integer/Float Integer-self -- Integer/Float } - Divide Integer.
+  - % { Integer/Float Integer-self -- Integer/Float } - Integer Modulus.
+  - neg { Integer-self -- Integer } - Negate value.
+  - not { Integer-self -- Integer } - Bitwise complement.
+  - and { Integer Integer-self -- Integer } - Bitwise and.
+  - or { Integer Integer-self -- Integer } - Bitwise or.
+  - xor { Integer Integer-self -- Integer } - Bitwise xor.
+  - shl { Integer Integer-self -- Integer } - Bitwise shift left.
+  - shr { Integer Integer-self -- Integer } - Bitwise shift right.
+  - ashr { Integer Integer-self -- Integer } - Bitwise arithmetic shift right.
+  - = { Integer/Float Integer-self -- Boolean } - Check for equality.
+  - < { Integer/Float Integer-self -- Boolean } - Check less than.
+  - <= { Integer/Float Integer-self -- Boolean } - Check less than or equal.
+  - > { Integer/Float Integer-self -- Boolean } - Check greater than.
+  - >= { Integer/Float Integer-self -- Boolean } - Check greater than or equal.
+  - != { Integer/Float Integer-self -- Boolean } - Check for inequality.
+  - for { List Integer Integer-self / List Integer-self -- } -
+          Iterate either from the first Integer to the second Integer, or from 1 to the Integer,
+          putting the value onto the stack and calling the List. If the first Integer is greater
+          than the second, the values decrement.
 
 - Float(Float/Number)
-    - $ { Float-self -- String } - Convert to String.
-    - repr { Float-self -- String } - Display Float representation.
-    - print { Float-self -- } - Print value.
-    - + { Float/Integer Float-self -- Float } - Add to Float.
-    - - { Float/Integer Float-self -- Float } - Subtract from Float.
-    - * { Float/Integer Float-self -- Float } - Multiply Float.
-    - / { Float/Integer Float-self -- Float } - Divide Float.
-    - neg { Float-self -- Float } - Negate value.
-    - toInteger { Float-self -- Integer } - Convert to Integer.
-    - = { Float/Integer Float-self -- Boolean } - Check for equality.
-    - < { Float/Integer Float-self -- Boolean } - Check less than.
-    - <= { Float/Integer Float-self -- Boolean } - Check less than or equal.
-    - > { Float/Integer Float-self -- Boolean } - Check greater than.
-    - >= { Float/Integer Float-self -- Boolean } - Check greater than or equal.
-    - != { Float/Integer Float-self -- Boolean } - Check for inequality.
+  - $ { Float-self -- String } - Convert to String.
+  - repr { Float-self -- String } - Display Float representation.
+  - print { Float-self -- } - Print value.
+  - + { Float/Integer Float-self -- Float } - Add to Float.
+  - - { Float/Integer Float-self -- Float } - Subtract from Float.
+  - * { Float/Integer Float-self -- Float } - Multiply Float.
+  - / { Float/Integer Float-self -- Float } - Divide Float.
+  - neg { Float-self -- Float } - Negate value.
+  - toInteger { Float-self -- Integer } - Convert to Integer.
+  - = { Float/Integer Float-self -- Boolean } - Check for equality.
+  - < { Float/Integer Float-self -- Boolean } - Check less than.
+  - <= { Float/Integer Float-self -- Boolean } - Check less than or equal.
+  - > { Float/Integer Float-self -- Boolean } - Check greater than.
+  - >= { Float/Integer Float-self -- Boolean } - Check greater than or equal.
+  - != { Float/Integer Float-self -- Boolean } - Check for inequality.
 
 - Boolean(Boolean/Object)
-    - $ { Boolean-self -- String } - Convert to String.
-    - repr { Boolean-self -- String } - Display Boolean representation.
-    - print { Boolean-self -- } - Print value.
-    - and { Boolean Boolean-self -- Boolean }
-    - or { Boolean Boolean-self -- Boolean }
-    - xor { Boolean Boolean-self -- Boolean }
-    - not { Boolean-self -- Boolean }
-    - if { List Boolean -- } - Execute List if Boolean is true.
-    - ifelse { List-1 List-2 Boolean -- } - Execute List-1 if Boolean is true, else execute List-2.
+  - $ { Boolean-self -- String } - Convert to String.
+  - repr { Boolean-self -- String } - Display Boolean representation.
+  - print { Boolean-self -- } - Print value.
+  - and { Boolean Boolean-self -- Boolean }
+  - or { Boolean Boolean-self -- Boolean }
+  - xor { Boolean Boolean-self -- Boolean }
+  - not { Boolean-self -- Boolean }
+  - if { List Boolean -- } - Execute List if Boolean is true.
+  - ifelse { List-1 List-2 Boolean -- } - Execute List-1 if Boolean is true, else execute List-2.
 
 - List(List/Object)
-    - new { List-self -- List } - Create new List.
-    - $ { List-self -- String } - Convert to String.
-    - repr { List-self -- String } - Display List representation.
-    - len { List-self -- Integer } - Return number of Objects in List.
-    - append { Object List-self - } - Append object to end of List.
-    - pop { List-self -- Object } - Pop the last item from the List.
-    - first { List-self -- Object } - Return first Object from List.
-    - last # { List-self -- Object } - Return last Object from List.
-    - butFirst { List-self -- List } - Return List with all but the first items.
-    - exec { List-self -- } - Execute a List in the current scope.
-    - do { List-self -- } - Execute a List in a new scope scope.
-    - proc { List Object-self -- } - Generate a Proc. The List must be of the following format:
-                                     [ <parameters> <return values> <code> ]
-                                     <parameters> and <return values> are Lists of name type pairs.
-    - while { List List-self -- } - The first list is executed in a new scope and List-self is
-                                    executed in the same scope if there is a true on TOS.
-                                    This repeats until there is a false on TOS.
-    - for { List List-self -- } - List-self is executed for each element for the previous list,
-                                  which is put on the stack.
+  - new { List-self -- List } - Create new List.
+  - $ { List-self -- String } - Convert to String.
+  - repr { List-self -- String } - Display List representation.
+  - len { List-self -- Integer } - Return number of Objects in List.
+  - append { Object List-self - } - Append object to end of List.
+  - pop { List-self -- Object } - Pop the last item from the List.
+  - first { List-self -- Object } - Return first Object from List.
+  - last # { List-self -- Object } - Return last Object from List.
+  - butFirst { List-self -- List } - Return List with all but the first items.
+  - exec { List-self -- } - Execute a List in the current scope.
+  - do { List-self -- } - Execute a List in a new scope scope.
+  - proc { List Object-self -- } - Generate a Proc. The List must be of the following format:
+                                    [ <parameters> <return values> <code> ]
+                                    <parameters> and <return values> are Lists of name type pairs.
+  - while { List List-self -- } - The first list is executed in a new scope and List-self is
+                                  executed in the same scope if there is a true on TOS.
+                                  This repeats until there is a false on TOS.
+  - for { List List-self -- } - List-self is executed for each element for the previous list,
+                                which is put on the stack.
 
 - Stack(List/Object)
-    - $ { List-self -- String } - Convert to String.
-    - repr { List-self -- String } - Display List representation.
-    - .drop { Object -- } - Pop top of stack and discard
-    - .dup { Object -- Object Object } - Duplicate top od stack.
-    - .swap { Object-1 Object-2 -- Object-2 Object-1 } - Swap top two items on stack.
-    - .over { Object-1 Object-2 (Stack-self) -- Object-1 Object-2 Object-1 } - Copy 2nd on stack to TOS.
-    - .rot { Object-1 Object-2 Object-3 (Stack-self) -- Object-2 Object-3 Object-1 }
+  - $ { List-self -- String } - Convert to String.
+  - repr { List-self -- String } - Display List representation.
+  - .drop { Object -- } - Pop top of stack and discard
+  - .dup { Object -- Object Object } - Duplicate top od stack.
+  - .swap { Object-1 Object-2 -- Object-2 Object-1 } - Swap top two items on stack.
+  - .over { Object-1 Object-2 (Stack-self) -- Object-1 Object-2 Object-1 } - Copy 2nd on stack to TOS.
+  - .rot { Object-1 Object-2 Object-3 (Stack-self) -- Object-2 Object-3 Object-1 }
+
+- Stream(AStream/Object)
+  - new { -- } - Abstract create a new Stream.
+  - open { -- } - Abstract open a Stream.
+  - close { -- } - Abstract close a Stream.
+  - atEnd { -- } - Abstract determine whether a Stream is at it's end.
+  - flush { -- } - Abstract flush a stream.
+  - getPos { -- } - Abstract get position within a Stream.
+  - setPos { -- } - Abstract set position within a Stream.
+  - readChar { -- } - Abstract read a character from a Stream.
+  - readString { -- } - Abstract read a String from a Stream.
+  - readLine { -- } - Abstract read a line from a Stream.
+  - write { -- } - Abstract write to a Stream.
+  - writeLine { -- } - Abstract write a line to a Stream.
+
+- FileStream(AFileStread/AStream)
+  - open { String Symbol FileStream-self -- FileStream } - Open a FileStream.
+  - close { FileStream-self -- } - Close a FileStream.
+  - atEnd { FileStream-self -- Boolean } - Determine whether a FileStream is at it's end.
+  - flush { FileStream-self -- } - Flush a FileStream.
+  - getPos { FileStream-self -- Integer } - Get position within a FileStream.
+  - setPos { Integer FileStream-self -- } - Set position within a FileStream.
+  - readString { Integer FileStream-self -- String } - Read a String of a given length from a FileStream.
+  - readLine { FileStream-self -- String } - Read a line from a FileStream.
+  - write { String FileStream-self -- String } - Write a String to a FileStream.
+  - writeLine { String FileStream-self -- String } - Write a String to a FileStream followed by a newline.

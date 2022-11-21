@@ -1,6 +1,6 @@
 ## Wibble base types.
 
-import std/[strformat, tables]
+import std/[streams, strformat, tables]
 
 const
   # Base Object names.
@@ -16,6 +16,8 @@ const
   listName* = "List"
   stackName* = "Stack"
   procName* = "Proc"
+  aStreamName* = "Stream"
+  aFileStreamName* = "FileStream"
 
   # Slot names.
   objectSlotParent* = "_parent"
@@ -32,6 +34,10 @@ const
   modulesObjectName* = "modules"
   trueObjectName* = "true"
   falseObjectName* = "false"
+  streamName* = "name"
+  streamStdIn* = "stdin"
+  streamStdOut* = "stdout"
+  streamStdErr* = "stderr"
   selfReferentialSlots* = [globalObjectName, localObjectName]
 
 type
@@ -81,12 +87,21 @@ type
     ## List containing other Objects.
     items*: seq[Object]
 
+  AStream* = ref object of Object
+    ## Abstract Stream
+
+  AFileStream* = ref object of AStream
+    ## File.
+    stream*: FileStream
+
 
   CoreError* = ref object of CatchableError
     ## Base for all core exceptions.
 
   ObjectError* = ref object of CoreError
     ## create, get and set.
+
+  AbstractError* = ref object of CoreError
 
   NumberError* = ref object of CoreError
 
@@ -114,6 +129,11 @@ type
 
   ListError* = ref object of CoreError
 
+  StreamError* = ref object of CoreError
+
+  FileStreamError* = ref object of StreamError
+
+
   BaseObjects* = ref object
     ## Collection of all base objects.
     global_object*: Object  # Pseudo Object, but not inheriting from Object.
@@ -131,6 +151,11 @@ type
     base_list*: List
     base_stack*: List
     base_proc*: Proc
+    base_stream*: AStream
+    base_file_stream*: AFileStream
+    stdin*: AFileStream
+    stdout*: AFileStream
+    stderr*: AFileStream
 
 var 
   base_objects* = new BaseObjects    ## Base of the Object hierarchy.
@@ -250,7 +275,7 @@ base_objects.base_nil = newObject(base_objects.base_object)
 base_objects.base_nil.class_name = nilName
 base_objects.global_object.slots[nilName] = base_objects.base_nil
 
-# Create base Number.
+# Create Number singleton.
 base_objects.base_number = newNumber(base_objects.base_object)
 base_objects.global_object.slots[numberName] = base_objects.base_number
 
@@ -304,3 +329,12 @@ proc toBoolean*(value: bool): Boolean =
     result = base_objects.base_true
   else:
     result = base_objects.base_false
+
+template abstractMethod*(name, meth, action, class, where: untyped) =
+  ## Create an abstract method that just raises an exception.
+  proc name*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
+    ## { self -- }
+    ## Abstract method.
+    raise newError[AbstractError]("$# - Can't $# an anstract $#." % [meth, action, class])
+
+  base_objects.where.slots[meth] = newNativeProc(name)

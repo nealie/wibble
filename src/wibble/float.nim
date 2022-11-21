@@ -1,6 +1,6 @@
 ## Wibble Float.
 
-import std/[math, strformat, tables]
+import std/[strformat, tables]
 import base, list
 
 base_objects.base_float = newFloat(base_objects.base_number, 0.0)

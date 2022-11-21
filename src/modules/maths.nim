@@ -1,7 +1,7 @@
 ## Nim maths module.
 
 import std/[math, strformat, tables]
-import core, exec
+import core
 
 # Integer
 

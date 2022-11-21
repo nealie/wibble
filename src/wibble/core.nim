@@ -1,6 +1,6 @@
 ## Wibble core objects.
 
-import std/[math, strutils, strformat, streams, tables, sugar, os]
+import std/[strutils, strformat, tables]
 
 import base
 export base
@@ -43,18 +43,24 @@ proc nilNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
 
 base_objects.base_nil.slots["new"] = newNativeProc(nilNew)
 
+## Scope
+
+proc newScope*(parent: Object): Object =
+  ## Create a new scope Object, linked to an outer scope.
+  result = newObject(parent)
+  result.slots[localObjectName] = result
+
+proc newScope*(): Object =
+  ## Create a new scope Object.
+  result = newScope(base_objects.base_object)
+
 import symbol
 export symbol
 
 import string
 export string
 
-proc numberNew*(stack: var List, scope: var Object, self: Object, proc_def: Proc) =
-  ## { Number-self -- }
-  ## Can't create an abstract Number.
-  raise newError[NumberError]("new - Can't create an anstract Number.")
-
-base_objects.base_number.slots["new"] = newNativeProc(numberNew) 
+abstractMethod(numberNew, "new", "create", "Number", base_number)
 
 import integer
 export integer
@@ -68,13 +74,8 @@ export boolean
 import stack
 export stack
 
-## Scope
+import stream
+export stream
 
-proc newScope*(parent: Object): Object =
-  ## Create a new scope Object, linked to an outer scope.
-  result = newObject(parent)
-  result.slots[localObjectName] = result
-
-proc newScope*(): Object =
-  ## Create a new scope Object.
-  result = newScope(base_objects.base_object)
+import filestream
+export filestream
